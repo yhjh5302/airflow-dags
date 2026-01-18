@@ -93,7 +93,7 @@ def exec_in_warm_pod(cmd: str, **context):
       git clone {GIT_REPO} {WORKDIR}
     fi
     cd {WORKDIR}
-    exec {cmd}
+    {cmd}
     """
 
     resp = stream(
