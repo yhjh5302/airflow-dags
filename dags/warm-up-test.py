@@ -96,9 +96,6 @@ def exec_in_warm_pod(cmd: str, **context):
     fi
     cd {WORKDIR}
     {cmd}
-    EXIT_CODE=$?
-    echo "__EXIT_CODE__=$EXIT_CODE"
-    exit $EXIT_CODE
     """
 
     resp = stream(
@@ -111,17 +108,30 @@ def exec_in_warm_pod(cmd: str, **context):
         stdin=False,
         stdout=True,
         tty=False,
+        _preload_content=False,
     )
 
-    log.info(resp)
+    stdout = []
+    stderr = []
 
-    for line in resp.splitlines():
-        if line.startswith("__EXIT_CODE__="):
-            code = int(line.split("=")[1])
-            if code != 0:
-                raise AirflowFailException(
-                    f"Pod command failed with exit code {code}"
-                )
+    while resp.is_open():
+        resp.update(timeout=1)
+        if resp.peek_stdout():
+            out = resp.read_stdout()
+            stdout.append(out)
+            log.info(out.rstrip())
+        if resp.peek_stderr():
+            err = resp.read_stderr()
+            stderr.append(err)
+            log.error(err.rstrip())
+
+    resp.close()
+
+    exit_code = resp.returncode
+    if exit_code != 0:
+        raise AirflowFailException(
+            f"Pod exec failed with exit code {exit_code}"
+        )
 
 
 with DAG(
