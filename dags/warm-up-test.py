@@ -107,8 +107,7 @@ def exec_in_warm_pod(cmd: str, **context):
         stderr=True,
         stdin=False,
         stdout=True,
-        tty=True,
-        _preload_content=False,
+        tty=False,
     )
 
     while resp.is_open():
