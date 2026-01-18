@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
+from airflow.exceptions import AirflowFailException
 from datetime import datetime
 from kubernetes import client, config
 from kubernetes.stream import stream
@@ -84,6 +85,7 @@ def wait_for_pod_ready():
 
 
 def exec_in_warm_pod(cmd: str, **context):
+    log = logging.getLogger("airflow.task")
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -94,6 +96,11 @@ def exec_in_warm_pod(cmd: str, **context):
     fi
     cd {WORKDIR}
     {cmd}
+    EXIT_CODE=$?
+
+    echo "__EXIT_CODE__=$EXIT_CODE"
+
+    exit $EXIT_CODE
     """
 
     resp = stream(
@@ -108,7 +115,15 @@ def exec_in_warm_pod(cmd: str, **context):
         tty=False,
     )
 
-    print(resp)
+    log.info(resp)
+
+    for line in resp.splitlines():
+        if line.startswith("__EXIT_CODE__="):
+            code = int(line.split("=")[1])
+            if code != 0:
+                raise AirflowFailException(
+                    f"Pod command failed with exit code {code}"
+                )
 
 
 with DAG(
