@@ -4,7 +4,7 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime
 import subprocess
 
-NAMESPACE = "ml"
+NAMESPACE = "llm-test"
 POD_NAME = "warm-pytorch-worker"
 GIT_REPO = "https://github.com/yhjh5302/DNN-Testbed"
 WORKDIR = "/root/DNN-Testbed"
@@ -12,36 +12,54 @@ TRAIN_SCRIPT = "/root/DNN-Testbed/horovod_test/train.py"
 
 
 def ensure_warm_pod(**context):
+    config.load_incluster_config()
+    v1 = client.CoreV1Api()
+
     conf = context["dag_run"].conf or {}
 
-    image = conf.get("image", "yhjh5302/kubectl:latest")
+    image = conf.get("image", "nvcr.io/nvidia/pytorch:25.12-py3")
     gpu = conf.get("gpu", 1)
     cpu = conf.get("cpu", "2")
     memory = conf.get("memory", "8Gi")
 
-    pod_yaml = f"""
-apiVersion: v1
-kind: Pod
-metadata:
-  name: {POD_NAME}
-  namespace: {NAMESPACE}
-spec:
-  containers:
-  - name: worker
-    image: {image}
-    command: ["/bin/bash", "-c"]
-    args: ["while true; do sleep 3600; done"]
-    resources:
-      limits:
-        nvidia.com/gpu: {gpu}
-        cpu: {cpu}
-        memory: {memory}
-"""
-    subprocess.run(
-        ["kubectl", "apply", "-f", "-"],
-        input=pod_yaml.encode(),
-        check=True,
+    pod = client.V1Pod(
+        metadata=client.V1ObjectMeta(
+            name=POD_NAME,
+            namespace=NAMESPACE,
+            labels={"app": "warm-pytorch"}
+        ),
+        spec=client.V1PodSpec(
+            restart_policy="Always",
+            containers=[
+                client.V1Container(
+                    name="worker",
+                    image=image,
+                    command=["/bin/bash", "-c"],
+                    args=["while true; do sleep 3600; done"],
+                    resources=client.V1ResourceRequirements(
+                        limits={
+                            "nvidia.com/gpu": str(gpu),
+                            "cpu": cpu,
+                            "memory": memory,
+                        }
+                    ),
+                )
+            ],
+        ),
     )
+
+    try:
+        v1.read_namespaced_pod(name=POD_NAME, namespace=NAMESPACE)
+        print("Warm pod already exists")
+    except ApiException as e:
+        if e.status == 404:
+            v1.create_namespaced_pod(
+                namespace=NAMESPACE,
+                body=pod,
+            )
+            print("Warm pod created")
+        else:
+            raise
 
 
 def exec_cmd(cmd: str) -> str:
