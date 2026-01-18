@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.providers.cncf.kubernetes.sensors.kubernetes_pod import KubernetesPodSensorAsync
+from airflow.providers.cncf.kubernetes.sensors.pod import KubernetesPodSensor
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime
@@ -108,7 +108,7 @@ with DAG(
         python_callable=ensure_warm_pod,
     )
 
-    wait_pod = KubernetesPodSensorAsync(
+    wait_pod = KubernetesPodSensor(
         task_id="wait_warm_pod_ready",
         namespace=NAMESPACE,
         pod_name=POD_NAME,
