@@ -14,7 +14,7 @@ TRAIN_SCRIPT = "/root/DNN-Testbed/horovod_test/train.py"
 def ensure_warm_pod(**context):
     conf = context["dag_run"].conf or {}
 
-    image = conf.get("image", "nvcr.io/nvidia/pytorch:25.12-py3")
+    image = conf.get("image", "yhjh5302/kubectl:latest")
     gpu = conf.get("gpu", 1)
     cpu = conf.get("cpu", "2")
     memory = conf.get("memory", "8Gi")
@@ -68,7 +68,6 @@ with DAG(
     ensure_pod = PythonOperator(
         task_id="ensure_warm_pod",
         python_callable=ensure_warm_pod,
-        provide_context=True,
     )
 
     preprocess = BashOperator(
