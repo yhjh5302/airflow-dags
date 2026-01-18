@@ -123,7 +123,7 @@ def exec_in_warm_pod(cmd: str, **context):
         if resp.peek_stderr():
             err = resp.read_stderr()
             stderr.append(err)
-            log.info(err.rstrip())
+            log.error(err.rstrip())
 
     resp.close()
 
