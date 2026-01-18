@@ -97,9 +97,7 @@ def exec_in_warm_pod(cmd: str, **context):
     cd {WORKDIR}
     {cmd}
     EXIT_CODE=$?
-
     echo "__EXIT_CODE__=$EXIT_CODE"
-
     exit $EXIT_CODE
     """
 
