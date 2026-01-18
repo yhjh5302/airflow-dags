@@ -84,8 +84,6 @@ def wait_for_pod_ready():
 
 
 def exec_in_warm_pod(cmd: str, **context):
-    log = logging.getLogger("airflow.task")
-
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -95,7 +93,7 @@ def exec_in_warm_pod(cmd: str, **context):
       git clone {GIT_REPO} {WORKDIR}
     fi
     cd {WORKDIR}
-    {cmd}
+    exec {cmd}
     """
 
     resp = stream(
@@ -110,20 +108,7 @@ def exec_in_warm_pod(cmd: str, **context):
         tty=False,
     )
 
-    while resp.is_open():
-        resp.update(timeout=1)
-
-        if resp.peek_stdout():
-            out = resp.read_stdout()
-            if out:
-                log.info(out.rstrip())
-
-        if resp.peek_stderr():
-            err = resp.read_stderr()
-            if err:
-                log.error(err.rstrip())
-
-    resp.close()
+    print(resp)
 
 
 with DAG(
