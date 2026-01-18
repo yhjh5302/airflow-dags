@@ -63,17 +63,35 @@ def ensure_warm_pod(**context):
             raise
 
 
-def exec_cmd(cmd: str) -> str:
-    return f"""
-    kubectl exec {POD_NAME} -n {NAMESPACE} -- bash -c '
-      set -e
-      if [ ! -d "{WORKDIR}" ]; then
-        git clone {GIT_REPO} /root/DNN-Testbed
-      fi
-      cd {WORKDIR}
-      {cmd}
-    '
+def exec_in_warm_pod(cmd: str, **context):
+    from kubernetes import client, config
+    from kubernetes.stream import stream
+
+    config.load_incluster_config()
+    v1 = client.CoreV1Api()
+
+    full_cmd = f"""
+    set -e
+    if [ ! -d "{WORKDIR}" ]; then
+      git clone {GIT_REPO} {WORKDIR}
+    fi
+    cd {WORKDIR}
+    exec {cmd}
     """
+
+    resp = stream(
+        v1.connect_get_namespaced_pod_exec,
+        name=POD_NAME,
+        namespace=NAMESPACE,
+        container="worker",
+        command=["/bin/bash", "-c", full_cmd],
+        stderr=True,
+        stdin=False,
+        stdout=True,
+        tty=True,
+    )
+
+    print(resp)
 
 
 with DAG(
@@ -89,25 +107,28 @@ with DAG(
         python_callable=ensure_warm_pod,
     )
 
-    preprocess = BashOperator(
+    preprocess = PythonOperator(
         task_id="preprocessing",
-        bash_command=exec_cmd(
-            "sleep 30 && echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
-        ),
+        python_callable=exec_in_warm_pod,
+        op_kwargs={
+            "cmd": "sleep 30 && echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
+        },
     )
 
-    train = BashOperator(
+    train = PythonOperator(
         task_id="training",
-        bash_command=exec_cmd(
-            "sleep 30 && echo '[TRAIN] start'; python horovod_test/train.py --stage train"
-        ),
+        python_callable=exec_in_warm_pod,
+        op_kwargs={
+            "cmd": "sleep 30 && echo '[TRAIN] start'; python horovod_test/train.py --stage train"
+        },
     )
 
-    evaluate = BashOperator(
+    evaluate = PythonOperator(
         task_id="evaluation",
-        bash_command=exec_cmd(
-            "sleep 30 && echo '[EVAL] start'; python horovod_test/train.py --stage eval"
-        ),
+        python_callable=exec_in_warm_pod,
+        op_kwargs={
+            "cmd": "sleep 30 && echo '[EVAL] start'; python horovod_test/train.py --stage eval"
+        },
     )
 
     ensure_pod >> preprocess >> train >> evaluate
