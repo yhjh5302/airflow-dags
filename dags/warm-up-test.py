@@ -133,7 +133,7 @@ with DAG(
         task_id="preprocessing",
         python_callable=exec_in_warm_pod,
         op_kwargs={
-            "cmd": "sleep 30 && echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
+            "cmd": "sleep 10 && echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
         },
     )
 
@@ -141,7 +141,7 @@ with DAG(
         task_id="training",
         python_callable=exec_in_warm_pod,
         op_kwargs={
-            "cmd": "sleep 30 && echo '[TRAIN] start'; python horovod_test/train.py --stage train"
+            "cmd": "sleep 10 && echo '[TRAIN] start'; python horovod_test/train.py --stage train"
         },
     )
 
@@ -149,7 +149,7 @@ with DAG(
         task_id="evaluation",
         python_callable=exec_in_warm_pod,
         op_kwargs={
-            "cmd": "sleep 30 && echo '[EVAL] start'; python horovod_test/train.py --stage eval"
+            "cmd": "sleep 10 && echo '[EVAL] start'; python horovod_test/train.py --stage eval"
         },
     )
 
