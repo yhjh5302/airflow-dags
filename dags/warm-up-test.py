@@ -1,5 +1,4 @@
 from airflow import DAG
-from airflow.providers.cncf.kubernetes.sensors.pod import KubernetesPodSensor
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime
@@ -64,6 +63,27 @@ def ensure_warm_pod(**context):
             raise
 
 
+def wait_for_pod_ready():
+    from kubernetes import client, config
+    import time
+
+    config.load_incluster_config()
+    v1 = client.CoreV1Api()
+
+    while True:
+        pod = v1.read_namespaced_pod(POD_NAME, NAMESPACE)
+        phase = pod.status.phase
+
+        if phase == "Running":
+            for cs in pod.status.container_statuses or []:
+                if cs.ready:
+                    return
+        if phase in ("Failed", "Unknown"):
+            raise RuntimeError(f"Pod in bad state: {phase}")
+
+        time.sleep(5)
+
+
 def exec_in_warm_pod(cmd: str, **context):
     from kubernetes import client, config
     from kubernetes.stream import stream
@@ -108,16 +128,9 @@ with DAG(
         python_callable=ensure_warm_pod,
     )
 
-    wait_pod = KubernetesPodSensor(
-        task_id="wait_warm_pod_ready",
-        namespace=NAMESPACE,
-        pod_name=POD_NAME,
-        container_name="worker",
-        target_state="Running",
-        poke_interval=5,
-        timeout=86400,
-        kubernetes_conn_id="kubernetes_in_cluster",
-        attach_log=False,
+    wait_pod = PythonOperator(
+        task_id="wait_warm_pod",
+        python_callable=wait_for_pod_ready,
     )
 
     preprocess = PythonOperator(
