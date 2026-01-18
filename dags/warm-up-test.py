@@ -2,7 +2,6 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-import subprocess
 
 NAMESPACE = "llm-test"
 POD_NAME = "warm-pytorch-worker"
@@ -12,6 +11,8 @@ TRAIN_SCRIPT = "/root/DNN-Testbed/horovod_test/train.py"
 
 
 def ensure_warm_pod(**context):
+    from kubernetes import client, config
+    from kubernetes.client.exceptions import ApiException
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -91,21 +92,21 @@ with DAG(
     preprocess = BashOperator(
         task_id="preprocessing",
         bash_command=exec_cmd(
-            "echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
+            "sleep 30 && echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
         ),
     )
 
     train = BashOperator(
         task_id="training",
         bash_command=exec_cmd(
-            "echo '[TRAIN] start'; python horovod_test/train.py --stage train"
+            "sleep 30 && echo '[TRAIN] start'; python horovod_test/train.py --stage train"
         ),
     )
 
     evaluate = BashOperator(
         task_id="evaluation",
         bash_command=exec_cmd(
-            "echo '[EVAL] start'; python horovod_test/train.py --stage eval"
+            "sleep 30 && echo '[EVAL] start'; python horovod_test/train.py --stage eval"
         ),
     )
 
