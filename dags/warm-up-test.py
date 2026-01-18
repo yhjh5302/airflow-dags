@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.providers.cncf.kubernetes.sensors.pod import KubernetesPodSensorAsync
+from airflow.providers.cncf.kubernetes.sensors.kubernetes_pod import KubernetesPodSensorAsync
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime
