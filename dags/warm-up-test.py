@@ -2,6 +2,10 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime
+from kubernetes import client, config
+from kubernetes.stream import stream
+from kubernetes.client.exceptions import ApiException
+import sys, time
 
 NAMESPACE = "llm-test"
 POD_NAME = "warm-pytorch-worker"
@@ -11,8 +15,6 @@ TRAIN_SCRIPT = "/root/DNN-Testbed/horovod_test/train.py"
 
 
 def ensure_warm_pod(**context):
-    from kubernetes import client, config
-    from kubernetes.client.exceptions import ApiException
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -64,9 +66,6 @@ def ensure_warm_pod(**context):
 
 
 def wait_for_pod_ready():
-    from kubernetes import client, config
-    import time
-
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -85,9 +84,6 @@ def wait_for_pod_ready():
 
 
 def exec_in_warm_pod(cmd: str, **context):
-    from kubernetes import client, config
-    from kubernetes.stream import stream
-
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -110,9 +106,19 @@ def exec_in_warm_pod(cmd: str, **context):
         stdin=False,
         stdout=True,
         tty=True,
+        _preload_content=False,
     )
 
-    print(resp)
+    while resp.is_open():
+        resp.update(timeout=1)
+        if resp.peek_stdout():
+            out = resp.read_stdout()
+            print(out, end="")
+        if resp.peek_stderr():
+            err = resp.read_stderr()
+            print(err, end="", file=sys.stderr)
+
+    resp.close()
 
 
 with DAG(
