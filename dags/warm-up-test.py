@@ -123,7 +123,7 @@ def exec_in_warm_pod(cmd: str, **context):
         if resp.peek_stderr():
             err = resp.read_stderr()
             stderr.append(err)
-            log.error(err.rstrip())
+            log.info(err.rstrip())
 
     resp.close()
 
@@ -156,7 +156,7 @@ with DAG(
         task_id="preprocessing",
         python_callable=exec_in_warm_pod,
         op_kwargs={
-            "cmd": "sleep 10 && echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
+            "cmd": "sleep 3 && echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
         },
     )
 
@@ -164,7 +164,7 @@ with DAG(
         task_id="training",
         python_callable=exec_in_warm_pod,
         op_kwargs={
-            "cmd": "sleep 10 && echo '[TRAIN] start'; python horovod_test/train.py --stage train"
+            "cmd": "sleep 3 && echo '[TRAIN] start'; python horovod_test/train.py --stage train"
         },
     )
 
@@ -172,7 +172,7 @@ with DAG(
         task_id="evaluation",
         python_callable=exec_in_warm_pod,
         op_kwargs={
-            "cmd": "sleep 10 && echo '[EVAL] start'; python horovod_test/train.py --stage eval"
+            "cmd": "sleep 3 && echo '[EVAL] start'; python horovod_test/train.py --stage eval"
         },
     )
 
