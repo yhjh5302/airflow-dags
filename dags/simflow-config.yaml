@@ -1,7 +1,7 @@
 metadata:
   workspaceId: ws-12345
   projectId: prj-ml-vision
-  submitterEmail: email@example.com
+  submitterId: aaaaa        # ID
 run:
   workflowId: ml_train_pipeline
   parameters:
