@@ -1,0 +1,32 @@
+metadata:
+  workspaceId: ws-12345
+  projectId: prj-ml-vision
+  submitterEmail: email@example.com
+run:
+  workflowId: ml_train_pipeline
+  parameters:
+    image: registry.myorg.io/ml/pytorch:2.2-cuda12
+    command:
+      - /bin/bash
+      - -c
+    args:
+      - python
+      - train.py
+      - --config
+      - configs/train.yaml
+    resource:
+      type: h100-80gb-x1
+    volumes:
+      - name: dataset
+        mountPath: /data
+      - name: output
+        mountPath: /outputs
+    env:
+      LOG_LEVEL: INFO
+      WANDB_PROJECT: vision-training
+  policies:
+    retry:
+      maxAttempts: 1
+    timeoutSeconds: 86400
+    warmingPeriodSeconds: 300   # max 3600
+    priorityClass: normal       # options: low, normal, high
