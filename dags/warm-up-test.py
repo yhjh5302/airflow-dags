@@ -140,6 +140,11 @@ with DAG(
     schedule=None,
     catchup=False,
     max_active_runs=1,
+    params={
+        "image": Param(default="python:3.12-slim-bookworm", type="string", pattern=r"^[\w\.\-/]+:[\w\.\-]+$"),
+        "cpu": Param(default="100m", type="string", pattern=r"^[0-9]+m$"), 
+        "memory": Param(default="256Mi", type="string")
+    },
 ) as dag:
 
     ensure_pod = PythonOperator(
@@ -156,7 +161,7 @@ with DAG(
         task_id="preprocessing",
         python_callable=exec_in_warm_pod,
         op_kwargs={
-            "cmd": "sleep 3 && echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
+            "cmd": f"sleep 3 && echo '[PREPROCESS] start' cpu {cpu}, memory {memory}, image {image}; python horovod_test/train.py --stage preprocess"
         },
     )
 
