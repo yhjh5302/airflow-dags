@@ -1,4 +1,5 @@
 from airflow import DAG
+from airflow.models.param import Param
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.exceptions import AirflowFailException
