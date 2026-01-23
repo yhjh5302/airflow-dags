@@ -16,6 +16,18 @@ WORKDIR = "/root/DNN-Testbed"
 TRAIN_SCRIPT = "/root/DNN-Testbed/horovod_test/train.py"
 
 
+def get_pod_events(v1, pod_name, namespace):
+    try:
+        events = v1.list_namespaced_event(
+            namespace, 
+            field_selector=f"involvedObject.name={pod_name}"
+        )
+        sorted_events = sorted(events.items, key=lambda x: x.last_timestamp or x.first_timestamp, reverse=True)
+        return [f"[{e.reason}] {e.message}" for e in sorted_events[:3]]
+    except Exception as e:
+        return [f"[Error] Cannot get event messages: {e}"]
+
+
 def ensure_warm_pod(**context):
     config.load_incluster_config()
     v1 = client.CoreV1Api()
@@ -85,7 +97,8 @@ def wait_for_pod_ready():
         phase = pod.status.phase
 
         if phase in ("Succeeded", "Failed", "Unknown"):
-            raise RuntimeError(f"Pod entered a terminal state: {phase}")
+            event_msgs = "\n".join(get_pod_events(v1, POD_NAME, NAMESPACE))
+            raise RuntimeError(f"Pod entered a terminal\nphase: {phase}\n{event_msgs}")
 
         container_statuses = pod.status.container_statuses or []
         for cs in container_statuses:
@@ -98,9 +111,10 @@ def wait_for_pod_ready():
             if state.waiting:
                 reason = state.waiting.reason
                 print(f"Container is waiting. Reason: {reason}")
-                
+
+                event_msgs = "\n".join(get_pod_events(v1, POD_NAME, NAMESPACE))
                 if reason in FATAL_REASONS:
-                    raise RuntimeError(f"Pod failed with fatal reason: {reason}")
+                    raise RuntimeError(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
 
             if state.terminated and state.terminated.exit_code != 0:
                 raise RuntimeError(f"Container terminated with exit code {state.terminated.exit_code}")
