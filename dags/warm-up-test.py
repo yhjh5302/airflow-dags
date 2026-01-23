@@ -3,7 +3,7 @@ from airflow.models.param import Param
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.exceptions import AirflowFailException
-from datetime import datetime
+from datetime import datetime, timezone
 from kubernetes import client, config
 from kubernetes.stream import stream
 from kubernetes.client.exceptions import ApiException
