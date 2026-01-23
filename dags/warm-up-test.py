@@ -113,8 +113,8 @@ def wait_for_pod_ready():
                 reason = state.waiting.reason
                 print(f"Container is waiting. Reason: {reason}")
 
-                event_msgs = "\n".join(get_pod_events(v1, POD_NAME, NAMESPACE))
                 if reason in FATAL_REASONS:
+                    event_msgs = "\n".join(get_pod_events(v1, POD_NAME, NAMESPACE))
                     print(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
                     raise RuntimeError(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
 
