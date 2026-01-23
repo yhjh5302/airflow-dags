@@ -22,7 +22,12 @@ def get_pod_events(v1, pod_name, namespace):
             namespace, 
             field_selector=f"involvedObject.name={pod_name}"
         )
-        sorted_events = sorted(events.items, key=lambda x: x.last_timestamp or x.first_timestamp, reverse=True)
+
+        def get_event_time(event):
+            dt = event.last_timestamp or event.first_timestamp
+            return dt if dt else datetime.min.replace(tzinfo=timezone.utc)
+
+        sorted_events = sorted(events.items, key=get_event_time, reverse=True)
         return [f"[{e.reason}] {e.message}" for e in sorted_events[:3]]
     except Exception as e:
         return [f"[Error] Cannot get event messages: {e}"]
@@ -111,12 +116,12 @@ def wait_for_pod_ready():
 
             if state.waiting:
                 reason = state.waiting.reason
-                print(f"Container is waiting. Reason: {reason}")
-
                 if reason in FATAL_REASONS:
                     event_msgs = "\n".join(get_pod_events(v1, POD_NAME, NAMESPACE))
                     print(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
                     raise RuntimeError(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
+                else:
+                    print(f"Container is waiting. Reason: {reason}")
 
             if state.terminated and state.terminated.exit_code != 0:
                 print(f"Container terminated with exit code {state.terminated.exit_code}")
