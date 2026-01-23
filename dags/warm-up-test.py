@@ -34,6 +34,7 @@ def get_pod_events(v1, pod_name, namespace):
 
 
 def ensure_warm_pod(**context):
+    log = logging.getLogger("airflow.task")
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -72,19 +73,20 @@ def ensure_warm_pod(**context):
 
     try:
         v1.read_namespaced_pod(name=POD_NAME, namespace=NAMESPACE)
-        print("Warm pod already exists")
+        log.info("Warm pod already exists")
     except ApiException as e:
         if e.status == 404:
             v1.create_namespaced_pod(
                 namespace=NAMESPACE,
                 body=pod,
             )
-            print("Warm pod created")
+            log.info("Warm pod created")
         else:
             raise
 
 
 def wait_for_pod_ready():
+    log = logging.getLogger("airflow.task")
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -103,7 +105,7 @@ def wait_for_pod_ready():
 
         if phase in ("Succeeded", "Failed", "Unknown"):
             event_msgs = "\n".join(get_pod_events(v1, POD_NAME, NAMESPACE))
-            print(f"Pod entered a terminal\nphase: {phase}\n{event_msgs}")
+            log.error(f"Pod entered a terminal\nphase: {phase}\n{event_msgs}")
             raise RuntimeError(f"Pod entered a terminal\nphase: {phase}\n{event_msgs}")
 
         container_statuses = pod.status.container_statuses or []
@@ -111,23 +113,23 @@ def wait_for_pod_ready():
             state = cs.state
             
             if cs.ready:
-                print(f"Pod {POD_NAME} is Ready!")
+                log.info(f"Pod {POD_NAME} is Ready!")
                 return
 
             if state.waiting:
                 reason = state.waiting.reason
                 if reason in FATAL_REASONS:
                     event_msgs = "\n".join(get_pod_events(v1, POD_NAME, NAMESPACE))
-                    print(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
+                    log.error(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
                     raise RuntimeError(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
                 else:
-                    print(f"Container is waiting. Reason: {reason}")
+                    log.info(f"Container is waiting. Reason: {reason}")
 
             if state.terminated and state.terminated.exit_code != 0:
-                print(f"Container terminated with exit code {state.terminated.exit_code}")
+                log.error(f"Container terminated with exit code {state.terminated.exit_code}")
                 raise RuntimeError(f"Container terminated with exit code {state.terminated.exit_code}")
 
-        print(f"Waiting for Pod {POD_NAME} to be ready (Current Phase: {phase})...")
+        log.info(f"Waiting for Pod {POD_NAME} to be ready (Current Phase: {phase})...")
         time.sleep(5)
 
 
