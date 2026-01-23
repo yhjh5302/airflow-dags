@@ -41,7 +41,7 @@ def ensure_warm_pod(**context):
     conf = context["dag_run"].conf or {}
 
     image = conf.get("image", "nvcr.io/nvidia/pytorch:25.12-py3")
-    gpu = conf.get("gpu", 1)
+    gpu = conf.get("gpu", "1")
     cpu = conf.get("cpu", "2")
     memory = conf.get("memory", "8Gi")
 
@@ -61,9 +61,9 @@ def ensure_warm_pod(**context):
                     args=["while true; do sleep 3600; done"],
                     resources=client.V1ResourceRequirements(
                         limits={
+                            "cpu": str(cpu),
+                            "memory": str(memory),
                             "nvidia.com/gpu": str(gpu),
-                            "cpu": cpu,
-                            "memory": memory,
                         }
                     ),
                 )
@@ -195,9 +195,10 @@ with DAG(
     catchup=False,
     max_active_runs=1,
     params={
-        "image": Param(default="python:3.12-slim-bookworm", type="string", pattern=r"^[\w\.\-/]+:[\w\.\-]+$"),
+        "image": Param(default="nvcr.io/nvidia/pytorch:25.12-py3", type="string", pattern=r"^[\w\.\-/]+:[\w\.\-]+$"),
         "cpu": Param(default="100m", type="string", pattern=r"^[0-9]+m$"), 
-        "memory": Param(default="256Mi", type="string")
+        "memory": Param(default="256Mi", type="string"),
+        "gpu": Param(default="1", type="string", pattern=r"^[0-9]+$"), 
     },
 ) as dag:
 
