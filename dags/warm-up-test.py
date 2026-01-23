@@ -28,7 +28,7 @@ def get_pod_events(v1, pod_name, namespace):
             return dt if dt else datetime.min.replace(tzinfo=timezone.utc)
 
         sorted_events = sorted(events.items, key=get_event_time, reverse=True)
-        return [f"[{e.reason}] {e.message}" for e in sorted_events[:3]]
+        return [f"[{e.reason}] {e.message}" for e in sorted_events]
     except Exception as e:
         return [f"[Error] Cannot get event messages: {e}"]
 
