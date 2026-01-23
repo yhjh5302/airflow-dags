@@ -98,6 +98,7 @@ def wait_for_pod_ready():
 
         if phase in ("Succeeded", "Failed", "Unknown"):
             event_msgs = "\n".join(get_pod_events(v1, POD_NAME, NAMESPACE))
+            print(f"Pod entered a terminal\nphase: {phase}\n{event_msgs}")
             raise RuntimeError(f"Pod entered a terminal\nphase: {phase}\n{event_msgs}")
 
         container_statuses = pod.status.container_statuses or []
@@ -114,9 +115,11 @@ def wait_for_pod_ready():
 
                 event_msgs = "\n".join(get_pod_events(v1, POD_NAME, NAMESPACE))
                 if reason in FATAL_REASONS:
+                    print(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
                     raise RuntimeError(f"Pod failed with fatal reason: {reason}\n{event_msgs}")
 
             if state.terminated and state.terminated.exit_code != 0:
+                print(f"Container terminated with exit code {state.terminated.exit_code}")
                 raise RuntimeError(f"Container terminated with exit code {state.terminated.exit_code}")
 
         print(f"Waiting for Pod {POD_NAME} to be ready (Current Phase: {phase})...")
