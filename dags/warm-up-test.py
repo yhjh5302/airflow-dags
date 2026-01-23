@@ -71,17 +71,41 @@ def wait_for_pod_ready():
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
+    FATAL_REASONS = [
+        "CrashLoopBackOff",
+        "ImagePullBackOff",
+        "ErrImagePull",
+        "CreateContainerConfigError",
+        "InvalidImageName",
+        "CreateContainerError"
+    ]
+
     while True:
         pod = v1.read_namespaced_pod(POD_NAME, NAMESPACE)
         phase = pod.status.phase
 
-        if phase == "Running":
-            for cs in pod.status.container_statuses or []:
-                if cs.ready:
-                    return
-        if phase in ("Failed", "Unknown"):
-            raise RuntimeError(f"Pod in bad state: {phase}")
+        if phase in ("Succeeded", "Failed", "Unknown"):
+            raise RuntimeError(f"Pod entered a terminal state: {phase}")
 
+        container_statuses = pod.status.container_statuses or []
+        for cs in container_statuses:
+            state = cs.state
+            
+            if cs.ready:
+                print(f"Pod {POD_NAME} is Ready!")
+                return
+
+            if state.waiting:
+                reason = state.waiting.reason
+                print(f"Container is waiting. Reason: {reason}")
+                
+                if reason in FATAL_REASONS:
+                    raise RuntimeError(f"Pod failed with fatal reason: {reason}")
+
+            if state.terminated and state.terminated.exit_code != 0:
+                raise RuntimeError(f"Container terminated with exit code {state.terminated.exit_code}")
+
+        print(f"Waiting for Pod {POD_NAME} to be ready (Current Phase: {phase})...")
         time.sleep(5)
 
 
