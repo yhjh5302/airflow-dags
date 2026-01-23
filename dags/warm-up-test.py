@@ -12,6 +12,7 @@ import sys, time, logging
 NAMESPACE = "llm-test"
 POD_NAME = "warm-pytorch-worker"
 GIT_REPO = "https://github.com/yhjh5302/DNN-Testbed"
+GIT_BRANCH = "master"
 WORKDIR = "/root/DNN-Testbed"
 TRAIN_SCRIPT = "/root/DNN-Testbed/horovod_test/train.py"
 
@@ -145,10 +146,16 @@ def exec_in_warm_pod(cmd: str, **context):
 
     full_cmd = f"""
     set -e
-    if [ ! -d "{WORKDIR}" ]; then
-      git clone {GIT_REPO} {WORKDIR}
+    if [ -d "{WORKDIR}/.git" ]; then
+        cd {WORKDIR}
+        git fetch origin {GIT_BRANCH}
+        git checkout {GIT_BRANCH}
+        git pull origin {GIT_BRANCH}
+    else
+        git clone -q {GIT_REPO} {WORKDIR}
+        cd {WORKDIR}
+        git checkout {GIT_BRANCH}
     fi
-    cd {WORKDIR}
     {cmd}
     """
 
