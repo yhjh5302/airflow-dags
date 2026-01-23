@@ -34,7 +34,7 @@ def get_pod_events(v1, pod_name, namespace):
 
 
 def ensure_warm_pod(**context):
-    log = logging.getLogger("airflow.task")
+    log = logging.getLogger("task")
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -86,7 +86,7 @@ def ensure_warm_pod(**context):
 
 
 def wait_for_pod_ready():
-    log = logging.getLogger("airflow.task")
+    log = logging.getLogger("task")
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
@@ -138,7 +138,7 @@ def wait_for_pod_ready():
 
 
 def exec_in_warm_pod(cmd: str, **context):
-    log = logging.getLogger("airflow.task")
+    log = logging.getLogger("task")
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
