@@ -104,11 +104,12 @@ def wait_for_pod_ready():
         phase = pod.status.phase
 
         if phase in ("Succeeded", "Failed", "Unknown"):
-            log.error(f"Pod entered a terminal\nphase: {phase}")
-            events = get_pod_events(v1, POD_NAME, NAMESPACE)
-            for msg in events[:5]:
-                log.error(f"{msg}")
-            raise RuntimeError(f"Pod entered a terminal\nphase: {phase}")
+            log.error(f"Pod entered a terminal. Phase: {phase}")
+            raise RuntimeError(f"Pod entered a terminal. Phase: {phase}")
+
+        if pod.metadata.deletion_timestamp is not None:
+            log.error(f"Pod is terminating. Phase: Terminating")
+            raise RuntimeError(f"Pod is terminating. Phase: Terminating")
 
         container_statuses = pod.status.container_statuses or []
         for cs in container_statuses:
