@@ -190,9 +190,7 @@ def exec_in_warm_pod(cmd: str, **context):
 
     exit_code = resp.returncode
     if exit_code != 0:
-        raise AirflowFailException(
-            f"Pod exec failed with exit code {exit_code}"
-        )
+        raise AirflowFailException(f"Pod exec failed with exit code {exit_code}")
 
 
 with DAG(
