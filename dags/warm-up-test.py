@@ -40,7 +40,6 @@ def ensure_warm_pod(**context):
     v1 = client.CoreV1Api()
 
     conf = context["dag_run"].conf or {}
-
     image = conf.get("image", "nvcr.io/nvidia/pytorch:25.12-py3")
     cpu = conf.get("cpu", "2")
     memory = conf.get("memory", "8Gi")
