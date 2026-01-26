@@ -223,7 +223,7 @@ with DAG(
         task_id="preprocessing",
         python_callable=exec_in_warm_pod,
         op_kwargs={
-            "cmd": "sleep 3 && echo '[PREPROCESS] start'; python horovod_test/train.py --stage preprocess"
+            "cmd": "sleep 3 && echo '[PREPROCESS] start cpu {{ params.cpu }} memory {{ params.memory }}'; python horovod_test/train.py --stage preprocess"
         },
     )
 
