@@ -214,6 +214,7 @@ with DAG(
         "namespace": Param(default="default", type="string", pattern=r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"),
         "work_dir": Param(default="/root", type="string", pattern=r"^(\/[a-zA-Z0-9\-_.]+)+$"),
         "image": Param(default="nvcr.io/nvidia/pytorch:25.12-py3", type="string", pattern=r"^[\w\.\-/]+:[\w\.\-]+$"),
+        "cmd": Param(default="python3 train.py --epochs 10", type="string", format="textarea"),
         "cpu": Param(default="500m", type="string", pattern=r"^[0-9]+m$"),
         "memory": Param(default="1024Mi", type="string"),
         "gpu": Param(default="1", type="string", pattern=r"^[0-9]+$"),
@@ -245,28 +246,14 @@ with DAG(
         python_callable=wait_for_pod_ready,
     )
 
-    preprocess = PythonOperator(
-        task_id="preprocessing",
-        python_callable=exec_in_warm_pod,
-        op_kwargs={
-            "cmd": "sleep 3 && echo '[PREPROCESS] start cpu {{ params.cpu }} memory {{ params.memory }}'; python horovod_test/train.py --stage preprocess"
-        },
-    )
-
     train = PythonOperator(
         task_id="training",
         python_callable=exec_in_warm_pod,
         op_kwargs={
-            "cmd": "sleep 3 && echo '[TRAIN] start'; python horovod_test/train.py --stage train"
+            "cmd": f"""
+                {{{{ params.cmd }}}}
+            """
         },
     )
 
-    evaluate = PythonOperator(
-        task_id="evaluation",
-        python_callable=exec_in_warm_pod,
-        op_kwargs={
-            "cmd": "sleep 3 && echo '[EVAL] start'; python horovod_test/train.py --stage eval"
-        },
-    )
-
-    ensure_pod >> wait_pod >> preprocess >> train >> evaluate
+    ensure_pod >> wait_pod >> train
