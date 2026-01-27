@@ -95,7 +95,7 @@ def wait_for_pod_ready(**context):
         "ErrImagePull",
         "CreateContainerConfigError",
         "InvalidImageName",
-        "CreateContainerError"
+        "CreateContainerError",
     ]
 
     while True:
