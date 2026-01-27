@@ -208,7 +208,7 @@ with DAG(
     catchup=False,
     max_active_runs=1,
     params={
-        "git_repo": Param(default="https://github.com/yhjh5302/DNN-Testbed", type="string", pattern=r"^https?:\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?$"),
+        "git_repo": Param(default="https://github.com/yhjh5302/DNN-Testbed.git", type="string", pattern=r"^https?:\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?$"),
         "git_commit": Param(default="ffffffffffffffffffffffffffffffffffffffff", type="string", pattern=r"^[a-f0-9]{40}$"),
         "warm_pod_name": Param(default="warm-worker-pod", type="string", pattern=r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"),
         "namespace": Param(default="default", type="string", pattern=r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"),
