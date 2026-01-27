@@ -80,7 +80,7 @@ def ensure_warm_pod(**context):
             raise
 
 
-def wait_for_pod_ready():
+def wait_for_pod_ready(**context):
     log = logging.getLogger("task")
     config.load_incluster_config()
     v1 = client.CoreV1Api()
