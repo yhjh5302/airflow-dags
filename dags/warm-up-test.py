@@ -200,9 +200,24 @@ with DAG(
     max_active_runs=1,
     params={
         "image": Param(default="nvcr.io/nvidia/pytorch:25.12-py3", type="string", pattern=r"^[\w\.\-/]+:[\w\.\-]+$"),
-        "cpu": Param(default="100m", type="string", pattern=r"^[0-9]+m$"), 
+        "cpu": Param(default="100m", type="string", pattern=r"^[0-9]+m$"),
         "memory": Param(default="256Mi", type="string"),
-        "gpu": Param(default="1", type="string", pattern=r"^[0-9]+$"), 
+        "gpu": Param(default="1", type="string", pattern=r"^[0-9]+$"),
+        "volumes": Param(
+            default=[
+                {"volume": "prj-0asd3f92sdw29ds7-", "path": "/data/public"},
+                {"volume": "private", "path": "/data/private"},
+            ],
+            type="array",
+            items={
+                "type": "object",
+                "properties": {
+                    "volume": {"type": "string", "minLength": 1},
+                    "path": {"type": "string", "minLength": 1},
+                },
+                "required": ["volume", "path"],
+            },
+        ),
     },
 ) as dag:
 
