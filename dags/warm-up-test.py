@@ -208,7 +208,7 @@ with DAG(
         "git_commit": Param(default="ffffffffffffffffffffffffffffffffffffffff", type="string", pattern=r"^[a-f0-9]{40}$"),
         "warm_pod_name": Param(default="warm-worker-pod", type="string", pattern=r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"),
         "namespace": Param(default="default", type="string", pattern=r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"),
-        "work_dir": Param(default="/root", type="string", pattern=r"^(\/[a-zA-Z0-9\-_.]+)+$"),
+        "work_dir": Param(default="/root/DNN-Testbed", type="string", pattern=r"^(\/[a-zA-Z0-9\-_.]+)+$"),
         "image": Param(default="nvcr.io/nvidia/pytorch:25.12-py3", type="string", pattern=r"^[\w\.\-/]+:[\w\.\-]+$"),
         "cmd": Param(default="python3 train.py --epochs 10", type="string", format="textarea"),
         "cpu": Param(default="500m", type="string", pattern=r"^[0-9]+m$"),
