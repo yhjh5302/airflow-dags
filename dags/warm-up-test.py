@@ -34,7 +34,7 @@ def ensure_warm_pod(**context):
 
     conf = context["dag_run"].conf or {}
     warm_pod_name = conf.get("warm_pod_name", "warm-worker-pod")
-    namespace = conf.get("namespace", "default")
+    namespace = conf.get("namespace", "llm-test")
     image = conf.get("image", "nvcr.io/nvidia/pytorch:25.12-py3")
     cpu = conf.get("cpu", "500m")
     memory = conf.get("memory", "1024Mi")
@@ -87,7 +87,7 @@ def wait_for_pod_ready(**context):
 
     conf = context["dag_run"].conf or {}
     warm_pod_name = conf.get("warm_pod_name", "warm-worker-pod")
-    namespace = conf.get("namespace", "default")
+    namespace = conf.get("namespace", "llm-test")
 
     FATAL_REASONS = [
         "CrashLoopBackOff",
@@ -146,7 +146,7 @@ def exec_in_warm_pod(cmd: str, **context):
     git_repo = conf.get("git_repo", "https://github.com/yhjh5302/DNN-Testbed.git")
     git_commit = conf.get("git_commit", "main")
     warm_pod_name = conf.get("warm_pod_name", "warm-worker-pod")
-    namespace = conf.get("namespace", "default")
+    namespace = conf.get("namespace", "llm-test")
     work_dir = conf.get("work_dir", "/root/DNN-Testbed")
 
     full_cmd = f"""
