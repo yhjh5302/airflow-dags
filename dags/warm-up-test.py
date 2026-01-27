@@ -147,22 +147,18 @@ def exec_in_warm_pod(cmd: str, **context):
     git_commit = conf.get("git_commit", "ffffffffffffffffffffffffffffffffffffffff")
     warm_pod_name = conf.get("warm_pod_name", "warm-worker-pod")
     namespace = conf.get("namespace", "default")
-    work_dir = conf.get("work_dir", "/root/")
-
-    base_name = git_repo.split("/")[-1]
-    repo_name = base_name.replace(".git", "")
-    target_dir = f"{work_dir}/{repo_name}"
+    work_dir = conf.get("work_dir", "/root/DNN-Testbed")
 
     full_cmd = f"""
     set -e
-    if [ -d "{target_dir}/.git" ]; then
-        cd {target_dir}
+    if [ -d "{work_dir}/.git" ]; then
+        cd {work_dir}
         git fetch origin
         git reset --hard {git_commit}
     else
-        git clone -q {git_repo} {target_dir}
-        cd {target_dir}
-        git reset --hard{git_commit}
+        git clone -q {git_repo} {work_dir}
+        cd {work_dir}
+        git reset --hard {git_commit}
     fi
     {cmd}
     """
