@@ -33,7 +33,7 @@ def ensure_warm_pod(**context):
     v1 = client.CoreV1Api()
 
     conf = context["dag_run"].conf or {}
-    warm_pod_name = conf.get("warm_pod_name", "warm-up-prj-1jkdo9dfasdf")
+    warm_pod_name = conf.get("warm_pod_name", "warm-worker-pod")
     namespace = conf.get("namespace", "default")
     image = conf.get("image", "nvcr.io/nvidia/pytorch:25.12-py3")
     cpu = conf.get("cpu", "500m")
@@ -86,7 +86,7 @@ def wait_for_pod_ready():
     v1 = client.CoreV1Api()
 
     conf = context["dag_run"].conf or {}
-    warm_pod_name = conf.get("warm_pod_name", "warm-up-prj-1jkdo9dfasdf")
+    warm_pod_name = conf.get("warm_pod_name", "warm-worker-pod")
     namespace = conf.get("namespace", "default")
 
     FATAL_REASONS = [
@@ -145,7 +145,7 @@ def exec_in_warm_pod(cmd: str, **context):
     conf = context["dag_run"].conf or {}
     git_repo = conf.get("git_repo", "https://github.com/yhjh5302/DNN-Testbed")
     git_commit = conf.get("git_commit", "ffffffffffffffffffffffffffffffffffffffff")
-    warm_pod_name = conf.get("warm_pod_name", "warm-up-prj-1jkdo9dfasdf")
+    warm_pod_name = conf.get("warm_pod_name", "warm-worker-pod")
     namespace = conf.get("namespace", "default")
     work_dir = conf.get("work_dir", "/root")
 
