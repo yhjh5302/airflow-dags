@@ -9,9 +9,6 @@ from kubernetes.stream import stream
 from kubernetes.client.exceptions import ApiException
 import sys, time, logging
 
-NAMESPACE = "llm-test"
-POD_NAME = "warm-pytorch-worker"
-
 
 def get_pod_events(v1, pod_name, namespace):
     try:
