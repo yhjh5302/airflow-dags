@@ -199,6 +199,8 @@ with DAG(
     catchup=False,
     max_active_runs=1,
     params={
+        "git_repo": Param(default="https://github.com/yhjh5302/DNN-Testbed", type="string", pattern=r"^https?:\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?$"),
+        "git_commit": Param(default="ffffffffffffffffffffffffffffffffffffffff", type="string", pattern=r"^[a-f0-9]{40}$"),
         "image": Param(default="nvcr.io/nvidia/pytorch:25.12-py3", type="string", pattern=r"^[\w\.\-/]+:[\w\.\-]+$"),
         "cpu": Param(default="100m", type="string", pattern=r"^[0-9]+m$"),
         "memory": Param(default="256Mi", type="string"),
