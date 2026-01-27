@@ -11,10 +11,6 @@ import sys, time, logging
 
 NAMESPACE = "llm-test"
 POD_NAME = "warm-pytorch-worker"
-GIT_REPO = "https://github.com/yhjh5302/DNN-Testbed"
-GIT_BRANCH = "master"
-WORKDIR = "/root/DNN-Testbed"
-TRAIN_SCRIPT = "/root/DNN-Testbed/horovod_test/train.py"
 
 
 def get_pod_events(v1, pod_name, namespace):
@@ -40,15 +36,17 @@ def ensure_warm_pod(**context):
     v1 = client.CoreV1Api()
 
     conf = context["dag_run"].conf or {}
+    warm_pod_name = conf.get("warm_pod_name", "warm-up-prj-1jkdo9dfasdf")
+    namespace = conf.get("namespace", "default")
     image = conf.get("image", "nvcr.io/nvidia/pytorch:25.12-py3")
-    cpu = conf.get("cpu", "2")
-    memory = conf.get("memory", "8Gi")
+    cpu = conf.get("cpu", "500m")
+    memory = conf.get("memory", "1024Mi")
     gpu = conf.get("gpu", "1")
 
     pod = client.V1Pod(
         metadata=client.V1ObjectMeta(
-            name=POD_NAME,
-            namespace=NAMESPACE,
+            name=warm_pod_name,
+            namespace=namespace,
             labels={"app": "warm-pytorch"}
         ),
         spec=client.V1PodSpec(
@@ -72,12 +70,12 @@ def ensure_warm_pod(**context):
     )
 
     try:
-        v1.read_namespaced_pod(name=POD_NAME, namespace=NAMESPACE)
+        v1.read_namespaced_pod(name=warm_pod_name, namespace=namespace)
         log.info("Warm pod already exists")
     except ApiException as e:
         if e.status == 404:
             v1.create_namespaced_pod(
-                namespace=NAMESPACE,
+                namespace=namespace,
                 body=pod,
             )
             log.info("Warm pod created")
@@ -90,6 +88,10 @@ def wait_for_pod_ready():
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
+    conf = context["dag_run"].conf or {}
+    warm_pod_name = conf.get("warm_pod_name", "warm-up-prj-1jkdo9dfasdf")
+    namespace = conf.get("namespace", "default")
+
     FATAL_REASONS = [
         "CrashLoopBackOff",
         "ImagePullBackOff",
@@ -100,7 +102,7 @@ def wait_for_pod_ready():
     ]
 
     while True:
-        pod = v1.read_namespaced_pod(POD_NAME, NAMESPACE)
+        pod = v1.read_namespaced_pod(warm_pod_name, namespace)
         phase = pod.status.phase
 
         if phase in ("Succeeded", "Failed", "Unknown"):
@@ -116,14 +118,14 @@ def wait_for_pod_ready():
             state = cs.state
             
             if cs.ready:
-                log.info(f"Pod {POD_NAME} is Ready!")
+                log.info(f"Pod {warm_pod_name} is Ready!")
                 return
 
             if state.waiting:
                 reason = state.waiting.reason
                 if reason in FATAL_REASONS:
                     log.error(f"Pod failed with fatal reason. (Reason: {reason})")
-                    events = get_pod_events(v1, POD_NAME, NAMESPACE)
+                    events = get_pod_events(v1, warm_pod_name, namespace)
                     for msg in events[:5]:
                         log.error(f"{msg}")
                     raise RuntimeError(f"Pod failed with fatal reason. (Reason: {reason})")
@@ -134,7 +136,7 @@ def wait_for_pod_ready():
                 log.error(f"Container terminated with exit code {state.terminated.exit_code}")
                 raise RuntimeError(f"Container terminated with exit code {state.terminated.exit_code}")
 
-        log.info(f"Waiting for Pod {POD_NAME} to be ready. (Current Phase: {phase})")
+        log.info(f"Waiting for Pod {warm_pod_name} to be ready. (Current Phase: {phase})")
         time.sleep(5)
 
 
@@ -143,25 +145,31 @@ def exec_in_warm_pod(cmd: str, **context):
     config.load_incluster_config()
     v1 = client.CoreV1Api()
 
+    conf = context["dag_run"].conf or {}
+    git_repo = conf.get("git_repo", "https://github.com/yhjh5302/DNN-Testbed")
+    git_commit = conf.get("git_commit", "ffffffffffffffffffffffffffffffffffffffff")
+    warm_pod_name = conf.get("warm_pod_name", "warm-up-prj-1jkdo9dfasdf")
+    namespace = conf.get("namespace", "default")
+    work_dir = conf.get("work_dir", "/root")
+
     full_cmd = f"""
     set -e
-    if [ -d "{WORKDIR}/.git" ]; then
-        cd {WORKDIR}
-        git fetch origin {GIT_BRANCH}
-        git checkout {GIT_BRANCH}
-        git pull origin {GIT_BRANCH}
+    if [ -d "{work_dir}/.git" ]; then
+        cd {work_dir}
+        git fetch origin
+        git reset --hard {git_commit}
     else
-        git clone -q {GIT_REPO} {WORKDIR}
-        cd {WORKDIR}
-        git checkout {GIT_BRANCH}
+        git clone -q {git_repo} {work_dir}
+        cd {work_dir}
+        git reset --hard{git_commit}
     fi
     {cmd}
     """
 
     resp = stream(
         v1.connect_get_namespaced_pod_exec,
-        name=POD_NAME,
-        namespace=NAMESPACE,
+        name=warm_pod_name,
+        namespace=namespace,
         container="worker",
         command=["/bin/bash", "-c", full_cmd],
         stderr=True,
@@ -201,9 +209,12 @@ with DAG(
     params={
         "git_repo": Param(default="https://github.com/yhjh5302/DNN-Testbed", type="string", pattern=r"^https?:\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?$"),
         "git_commit": Param(default="ffffffffffffffffffffffffffffffffffffffff", type="string", pattern=r"^[a-f0-9]{40}$"),
+        "warm_pod_name": Param(default="warm-worker-pod", type="string", pattern=r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"),
+        "namespace": Param(default="default", type="string", pattern=r"^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"),
+        "work_dir": Param(default="/root", type="string", pattern=r"^(\/[a-zA-Z0-9\-_.]+)+$"),
         "image": Param(default="nvcr.io/nvidia/pytorch:25.12-py3", type="string", pattern=r"^[\w\.\-/]+:[\w\.\-]+$"),
-        "cpu": Param(default="100m", type="string", pattern=r"^[0-9]+m$"),
-        "memory": Param(default="256Mi", type="string"),
+        "cpu": Param(default="500m", type="string", pattern=r"^[0-9]+m$"),
+        "memory": Param(default="1024Mi", type="string"),
         "gpu": Param(default="1", type="string", pattern=r"^[0-9]+$"),
         "volumes": Param(
             default=[
