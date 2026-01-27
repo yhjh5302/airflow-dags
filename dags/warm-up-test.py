@@ -113,7 +113,7 @@ def wait_for_pod_ready(**context):
         container_statuses = pod.status.container_statuses or []
         for cs in container_statuses:
             state = cs.state
-            
+
             if cs.ready:
                 log.info(f"Pod {warm_pod_name} is Ready!")
                 return
